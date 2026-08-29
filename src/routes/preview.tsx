@@ -134,16 +134,20 @@ function getDefaultData(): FreelancerData {
 }
 
 export function PreviewPortfolio() {
-  const [data, setData] = useState<FreelancerData>(getDefaultData());
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-    setData(parseUrlParams());
-  }, []);
-
   const tmpl = videoEditorTemplate;
   const c = tmpl.colors;
+
+  // Parse URL params on client side
+  const [data, setData] = useState<FreelancerData>(() => {
+    if (typeof window !== 'undefined') {
+      return parseUrlParams();
+    }
+    return getDefaultData();
+  });
+
+  useEffect(() => {
+    setData(parseUrlParams());
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -216,25 +220,6 @@ export function PreviewPortfolio() {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
-
-  if (!isClient) {
-    return (
-      <div
-        className="relative min-h-screen overflow-x-hidden"
-        style={{ background: c.bg, color: c.fg, fontFamily: tmpl.fonts.body }}
-      >
-        <CinematicBackground accent={c.accent} secondary={c.secondary} />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-pulse text-center">
-            <div className="w-16 h-16 border-4 border-current/20 rounded-full border-t-accent animate-spin mx-auto mb-4" />
-            <p style={{ color: c.fgMuted, fontFamily: tmpl.fonts.display, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-              Loading preview...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div

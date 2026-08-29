@@ -6,8 +6,6 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
 
-const isPreview = process.env.PREVIEW_BUILD === 'true'
-
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
