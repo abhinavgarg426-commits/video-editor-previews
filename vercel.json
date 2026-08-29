@@ -1,12 +1,7 @@
 {
-  "framework": "tanstack-start",
+  "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/client",
   "installCommand": "pnpm install",
-  "devCommand": "pnpm run dev",
-  "github": {
-    "enabled": true,
-    "autoAlias": true,
-    "silent": false
-  }
+  "devCommand": "pnpm run dev"
 }
