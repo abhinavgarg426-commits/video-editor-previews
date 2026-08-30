@@ -1,8 +1,5 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-
 interface UniversalTestimonialsProps {
   kind: 'video' | 'developer' | 'designer' | 'writer' | 'marketer';
   bg: string;
@@ -53,80 +50,94 @@ export default function UniversalTestimonials({ kind, bg, fg, fgMuted, accent }:
   return (
     <section className="relative" style={{ background: bg }}>
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.slice(0, 6).map((t, i) => (
-            <TestimonialCard key={i} t={t} c={{ accent, bg, fg, fgMuted }} i={i} />
-          ))}
-        </div>
-        {testimonials.length > 6 && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mt-12 text-sm"
-            style={{ color: fgMuted }}
+        <div className="relative overflow-hidden">
+          {/* Gradient fade edges */}
+          <div 
+            className="absolute left-0 top-0 bottom-0 w-32 pointer-events-none z-10"
+            style={{ 
+              background: `linear-gradient(90deg, ${bg} 0%, transparent 100%)`,
+            }}
+          />
+          <div 
+            className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none z-10"
+            style={{ 
+              background: `linear-gradient(270deg, ${bg} 0%, transparent 100%)`,
+            }}
+          />
+
+          <div 
+            className="testimonial-marquee"
+            role="region"
+            aria-label="Testimonials"
           >
-            +{testimonials.length - 6} more testimonials available on request
-          </motion.p>
-        )}
+            {testimonials.map((t, i) => (
+              <TestimonialCard 
+                key={i} 
+                t={t} 
+                c={{ accent, bg, fg, fgMuted }} 
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-function TestimonialCard({ t, c, i }: { t: { text: string; author: string }; c: { accent: string; bg: string; fg: string; fgMuted: string }; i: number }) {
+function TestimonialCard({ t, c }: { t: { text: string; author: string }; c: { accent: string; bg: string; fg: string; fgMuted: string } }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-10%' }}
-      transition={{ duration: 0.9, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative p-8 rounded-2xl overflow-hidden cursor-default"
-      style={{
-        background: c.bg,
-        border: `1px solid rgba(255,255,255,0.04)`,
-        transition: 'border-color 0.5s ease, box-shadow 0.5s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = `${c.accent}50`;
-        e.currentTarget.style.boxShadow = `0 24px 60px ${c.accent}15, 0 0 0 1px ${c.accent}30`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    >
-      <blockquote
-        className="text-base leading-relaxed mb-8 relative"
+    <div className="testimonial-card">
+      <div
+        className="relative p-8 rounded-2xl overflow-hidden cursor-default h-full"
         style={{
-          color: c.fg,
+          background: c.bg,
+          border: `1px solid rgba(255,255,255,0.04)`,
+          transition: 'border-color 0.5s ease, box-shadow 0.5s ease',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = `${c.accent}50`;
+          e.currentTarget.style.boxShadow = `0 24px 60px ${c.accent}15, 0 0 0 1px ${c.accent}30`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        {t.text}
-      </blockquote>
-
-      <figcaption
-        className="flex items-center gap-3 pt-6 border-t relative"
-        style={{
-          borderColor: 'rgba(255,255,255,0.04)',
-        }}
-      >
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
+        <blockquote
+          className="text-base leading-relaxed mb-8 relative flex-1"
           style={{
-            background: `${c.accent}15`,
-            color: c.accent,
-            border: `1px solid ${c.accent}40`,
+            color: c.fg,
           }}
         >
-          {t.author.charAt(0).toUpperCase()}
-        </div>
-        <div className="min-w-0">
-          <div className="font-bold text-sm" style={{ color: c.fg }}>
-            {t.author}
+          {t.text}
+        </blockquote>
+
+        <figcaption
+          className="flex items-center gap-3 pt-6 border-t relative"
+          style={{
+            borderColor: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
+            style={{
+              background: `${c.accent}15`,
+              color: c.accent,
+              border: `1px solid ${c.accent}40`,
+            }}
+          >
+            {t.author.charAt(0).toUpperCase()}
           </div>
-        </div>
-      </figcaption>
-    </motion.div>
+          <div className="min-w-0">
+            <div className="font-bold text-sm" style={{ color: c.fg }}>
+              {t.author}
+            </div>
+          </div>
+        </figcaption>
+      </div>
+    </div>
   );
 }

@@ -4,6 +4,14 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
 
+function getTitleFromUrl(): string {
+  if (typeof window === 'undefined') return 'Portfolio';
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get('name') || 'Portfolio';
+  const niche = params.get('niche') || 'Video Editor';
+  return `${name} | ${niche}`;
+}
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -15,7 +23,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Portfolio',
       },
     ],
     links: [
@@ -29,6 +37,13 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // Set dynamic title from URL params on the client
+  if (typeof window !== 'undefined') {
+    const title = getTitleFromUrl();
+    if (document.title !== title) {
+      document.title = title;
+    }
+  }
   return (
     <html lang="en">
       <head>

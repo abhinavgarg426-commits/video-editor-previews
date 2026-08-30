@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Mail, Instagram, Linkedin, Youtube,
   Play, Film, Clapperboard, ArrowRight, ArrowDown, ArrowUpRight,
-  Menu, X,
+  Menu, X, Calendar,
 } from 'lucide-react';
 import { videoEditorTemplate } from '@/lib/templates/video-editor';
 import { XLogo } from '@/components/icons/XLogo';
@@ -172,9 +172,26 @@ export function PreviewPortfolio() {
   const testimonials: Testimonial[] = data.testimonials || [];
   const social = data.social || {};
 
+  // Track whether client has hydrated with URL params (not just SSR defaults)
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+
+  // Set dynamic document title from current data
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const name = (data.name || '').trim() || 'Portfolio';
+      const niche = (data.niche || '').trim() || 'Video Editor';
+      document.title = `${name} | ${niche}`;
+    }
+  }, [data.name, data.niche]);
+
   const hasTools = tools.length > 0;
   const hasTestimonials = testimonials.length > 0;
-  const hasSocial = Object.values(social).some(v => v && v.trim());
+  // Only show Connect column if: (a) client has hydrated with URL params AND
+  // (b) at least one URL-param social field has a non-empty value.
+  // This prevents showing "Connect" with default jamiecruz data when the
+  // form actually submitted blank socials.
+  const hasSocial = hydrated && Object.values(social).some(v => v && String(v).trim());
 
   const navLinks = NAV_BASE.filter(l =>
     l.key === 'about' || l.key === 'contact' ||
@@ -347,7 +364,7 @@ export function PreviewPortfolio() {
                 className="text-[10px] font-bold uppercase tracking-[0.4em]"
                 style={{ color: c.accent, fontFamily: tmpl.fonts.display }}
               >
-                CINEMA
+                VIDEO EDITOR
               </span>
               <div className="h-px w-8 md:w-12" style={{ background: c.accent, opacity: 0.5 }} />
             </motion.div>
@@ -512,12 +529,6 @@ export function PreviewPortfolio() {
                 >
                   About
                 </span>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-[0.4em]"
-                  style={{ color: c.fgSubtle, fontFamily: tmpl.fonts.display }}
-                >
-                  EST. {new Date().getFullYear()}
-                </span>
               </div>
 
               <motion.p
@@ -601,6 +612,7 @@ export function PreviewPortfolio() {
                       {social.linkedin && <CinemaSocialIcon platform="linkedin" url={social.linkedin} c={c} />}
                       {social.twitter && <CinemaSocialIcon platform="twitter" url={social.twitter} c={c} />}
                       {social.email && <CinemaSocialIcon platform="email" url={social.email} c={c} />}
+                      {social.booking && <CinemaSocialIcon platform="booking" url={social.booking} c={c} />}
                     </div>
                   </motion.div>
                 )}
@@ -827,6 +839,7 @@ export function PreviewPortfolio() {
                 {social.linkedin && <CinemaSocialIcon platform="linkedin" url={social.linkedin} c={c} small />}
                 {social.twitter && <CinemaSocialIcon platform="twitter" url={social.twitter} c={c} small />}
                 {social.email && <CinemaSocialIcon platform="email" url={social.email} c={c} small />}
+                {social.booking && <CinemaSocialIcon platform="booking" url={social.booking} c={c} small />}
               </div>
             )}
           </div>
@@ -848,6 +861,7 @@ function CinemaSocialIcon({ platform, url, c, small = false }: { platform: strin
     case 'linkedin': Icon = Linkedin; href = url.startsWith('http') ? url : `https://linkedin.com/in/${url}`; break;
     case 'twitter': Icon = XLogo; href = url.startsWith('http') ? url : `https://twitter.com/${url.replace('@', '')}`; break;
     case 'email': Icon = Mail; href = `mailto:${url}`; break;
+    case 'booking': Icon = Calendar; href = url.startsWith('http') ? url : url; break;
   }
 
   return (
