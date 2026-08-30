@@ -123,13 +123,9 @@ function getDefaultData(): FreelancerData {
     contactNote: 'Send me your footage. Replies within 24h.',
     tools: ['Premiere Pro', 'DaVinci Resolve', 'After Effects'],
     services: ['Commercial Editing', 'Color Grading', 'Documentary'],
-    social: {
-      instagram: '@jamiecruz',
-      vimeo: 'jamiecruz',
-      youtube: '@jamiecruz',
-      linkedin: 'jamie-cruz',
-      email: 'jamie@example.com',
-    },
+    // Empty during SSR so the Connect column doesn't render with default
+    // jamiecruz placeholder values. Client hydration populates from URL params.
+    social: {},
   };
 }
 
@@ -145,8 +141,61 @@ export function PreviewPortfolio() {
     return getDefaultData();
   });
 
+  // Loading/error state for the customer-by-handle flow.
+  // - 'loading' while we fetch from /api/get-lead?h=<handle>
+  // - 'broken' if the fetch returns 404 (expired, deleted, never existed)
+  // - 'ready' once we have real data OR confirmed this is a non-handle URL
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'broken'>('ready');
+  const [brokenHandle, setBrokenHandle] = useState<string>('');
+
   useEffect(() => {
-    setData(parseUrlParams());
+    const params = new URLSearchParams(window.location.search);
+    const handle = params.get('h');
+    if (!handle) {
+      // No handle param — preview-email flow, data is in URL params
+      setData(parseUrlParams());
+      return;
+    }
+
+    // Handle present — fetch real customer data from KV
+    setLoadState('loading');
+    setBrokenHandle(handle);
+    fetch(`https://video-editor-webhook.vercel.app/api/get-lead?h=${encodeURIComponent(handle)}`)
+      .then(async (r) => {
+        if (r.status === 404) {
+          setLoadState('broken');
+          return;
+        }
+        if (!r.ok) {
+          setLoadState('broken');
+          return;
+        }
+        const lead = await r.json();
+        // Map KV response into FreelancerData shape
+        const socialParsed: Record<string, string> = {};
+        if (typeof lead.social === 'string') {
+          try { Object.assign(socialParsed, JSON.parse(lead.social)); } catch {}
+        } else if (lead.social && typeof lead.social === 'object') {
+          Object.assign(socialParsed, lead.social);
+        }
+        setData({
+          name: lead.name || 'Video Editor',
+          email: lead.email || '',
+          niche: lead.niche || 'Video Editor',
+          bio: lead.bio || '',
+          location: lead.location || '',
+          heroTagline: lead.heroTagline || '',
+          ctaHeadline: lead.ctaHeadline || '',
+          contactNote: lead.contactNote || '',
+          tools: Array.isArray(lead.tools) ? lead.tools : [],
+          services: Array.isArray(lead.services) ? lead.services : [],
+          social: socialParsed,
+        });
+        setLoadState('ready');
+      })
+      .catch(() => {
+        setLoadState('broken');
+      });
   }, []);
 
   useEffect(() => {
@@ -172,10 +221,6 @@ export function PreviewPortfolio() {
   const testimonials: Testimonial[] = data.testimonials || [];
   const social = data.social || {};
 
-  // Track whether client has hydrated with URL params (not just SSR defaults)
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => { setHydrated(true); }, []);
-
   // Set dynamic document title from current data
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -187,11 +232,9 @@ export function PreviewPortfolio() {
 
   const hasTools = tools.length > 0;
   const hasTestimonials = testimonials.length > 0;
-  // Only show Connect column if: (a) client has hydrated with URL params AND
-  // (b) at least one URL-param social field has a non-empty value.
-  // This prevents showing "Connect" with default jamiecruz data when the
-  // form actually submitted blank socials.
-  const hasSocial = hydrated && Object.values(social).some(v => v && String(v).trim());
+  // SSR returns empty social; client-side hydration populates from URL params.
+  // Result: blank form → no Connect column. With socials → Connect column.
+  const hasSocial = Object.values(social).some(v => String(v || '').trim().length > 0);
 
   const navLinks = NAV_BASE.filter(l =>
     l.key === 'about' || l.key === 'contact' ||
@@ -237,6 +280,60 @@ export function PreviewPortfolio() {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // BROKEN-STATE GUARD: if /api/get-lead?h=<handle> returned 404 (expired,
+  // deleted, never existed, or fetch failed), render a safe, honest
+  // "something went wrong" state instead of the customer portfolio.
+  // Never fall through to default/placeholder data when we were explicitly
+  // looking for a real customer by handle and didn't find them.
+  if (loadState === 'broken') {
+    return (
+      <div
+        className="relative min-h-screen flex items-center justify-center px-6"
+        style={{ background: c.bg, color: c.fg, fontFamily: tmpl.fonts.body }}
+      >
+        <CinematicBackground accent={c.accent} secondary={c.secondary} />
+        <div className="max-w-xl text-center relative z-10">
+          <div
+            className="text-[10px] font-bold uppercase tracking-[0.4em] mb-6"
+            style={{ color: c.accent, fontFamily: tmpl.fonts.display }}
+          >
+            Portfolio unavailable
+          </div>
+          <h1
+            className="text-4xl md:text-5xl font-medium tracking-[-0.02em] mb-6"
+            style={{ color: c.fg, fontFamily: tmpl.fonts.display, lineHeight: 1.1 }}
+          >
+            We can't load this portfolio right now.
+          </h1>
+          <p
+            className="text-base md:text-lg leading-relaxed mb-10 font-light"
+            style={{ color: c.fgMuted, fontFamily: tmpl.fonts.display }}
+          >
+            Your data may have expired or this link is no longer active.
+            If you recently purchased a portfolio, please reach out and
+            we'll restore your access.
+          </p>
+          <a
+            href="mailto:portfolioforfiverr@gmail.com?subject=Portfolio%20unavailable%20-%20need%20help"
+            className="inline-flex items-center gap-3 px-8 py-3.5 rounded-full font-bold text-[11px] uppercase tracking-[0.28em] transition-colors duration-300"
+            style={{ background: c.accent, color: '#000', fontFamily: tmpl.fonts.display }}
+          >
+            Contact support
+            <ArrowUpRight size={14} strokeWidth={2.5} />
+          </a>
+          {brokenHandle && (
+            <p
+              className="mt-10 text-[10px] uppercase tracking-[0.3em]"
+              style={{ color: c.fgSubtle, fontFamily: tmpl.fonts.display }}
+            >
+              Reference: {brokenHandle}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
